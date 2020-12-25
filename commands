@@ -1,0 +1,2 @@
+python3 yolo.py -w yolov3-tiny.weights -cfg yolov3-tiny.cfg -l coco.names
+
