@@ -5,6 +5,7 @@ import os
 import time
 import requests
 
+startTime = 0
 
 def extract_boxes_confidences_classids(outputs, confidence, width, height):
     boxes = []
@@ -55,7 +56,7 @@ def make_prediction(net, layer_names, labels, image, confidence, threshold):
     height, width = image.shape[:2]
     
     # Create a blob and pass it through the model
-    blob = cv2.dnn.blobFromImage(image, 1 / 255.0, (416, 416), swapRB=True, crop=False)
+    blob = cv2.dnn.blobFromImage(image, 1 / 255.0, (320, 320), swapRB=True, crop=False)
     net.setInput(blob)
     outputs = net.forward(layer_names)
 
@@ -85,7 +86,7 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--labels', type=str, default='model/coco.names', help='Path to label file')
     parser.add_argument('-c', '--confidence', type=float, default=0.5, help='Minimum confidence for a box to be detected.')
     parser.add_argument('-t', '--threshold', type=float, default=0.3, help='Threshold for Non-Max Suppression')
-    parser.add_argument('-u', '--use_gpu', default=False, action='store_true', help='Use GPU (OpenCV must be compiled for GPU). For more info checkout: https://www.pyimagesearch.com/2020/02/03/how-to-use-opencvs-dnn-module-with-nvidia-gpus-cuda-and-cudnn/')
+    # parser.add_argument('-u', '--use_gpu', default=False, action='store_true', help='Use GPU (OpenCV must be compiled for GPU). For more info checkout: https://www.pyimagesearch.com/2020/02/03/how-to-use-opencvs-dnn-module-with-nvidia-gpus-cuda-and-cudnn/')
     parser.add_argument('-s', '--save', default=False, action='store_true', help='Whether or not the output should be saved')
     parser.add_argument('-sh', '--show', default=True, action="store_false", help='Show output')
 
@@ -104,10 +105,10 @@ if __name__ == '__main__':
     # Load weights using OpenCV
     net = cv2.dnn.readNetFromDarknet(args.config, args.weights)
 
-    if args.use_gpu:
-        print('Using GPU')
-        net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
-        net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
+    # if args.use_gpu:
+    #     print('Using GPU')
+    #     net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+    #     net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
 
     if args.save:
         print('Creating output directory if it doesn\'t already exist')
@@ -137,8 +138,8 @@ if __name__ == '__main__':
             cap = cv2.VideoCapture(args.video_path)
         else:
             # cap = cv2.VideoCapture(0)
-            cap = cv2.VideoCapture('http://192.168.2.33:8080/video')
-            # cap = cv2.VideoCapture('http://192.168.2.7:8080/video')
+            # cap = cv2.VideoCapture('http://192.168.2.33:8080/video')
+            cap = cv2.VideoCapture('http://192.168.2.7:8080/video')
 
         if args.save:
             width = int(cap.get(3))
@@ -159,8 +160,9 @@ if __name__ == '__main__':
             image = draw_bounding_boxes(image, boxes, confidences, classIDs, idxs, colors)
 
             # print(classIDs)
-            if len(classIDs) > 0:
+            if (len(classIDs) > 0 and (time.time() - startTime > 10)):
                 send_msg('Detected stuff that may harm the baby. Please remove it as soon as possible.')
+                startTime = time.time()
 
 
             if args.show:
