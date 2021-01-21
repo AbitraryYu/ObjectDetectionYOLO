@@ -1,4 +1,5 @@
 import numpy as np
+import math
 import argparse
 import cv2
 import os
@@ -7,6 +8,8 @@ import requests
 import telegram
 
 startTime = 0
+muteTime = 10
+offset = ''
 # Create telegram Bot
 bot = telegram.Bot(token='1408532525:AAEpFAGIzqcUUC3S3khTCWHyWUYm196I8WU')
 # Send messages to the telegram bot EIE4430
@@ -80,22 +83,34 @@ def send_msg(text):
     url_req = "https://api.telegram.org/bot" + token +"/sendMessage" + "?chat_id=" + chat_id + "&text=" + text
     requests.get(url_req)
 
-def get_updates():
+def get_updates(offset):
     # Use telegram api
-    url_req = "https://api.telegram.org/bot" + token +"/getUpdates" + "?timeout=10"
+    start = time.time()
+    url_req = "https://api.telegram.org/bot" + token +"/getUpdates" + "?timeout=1" + "&offset=" + offset
     results = requests.get(url_req)
     json = results.json()
-    if(json['result'][-1]['message'].get('text')):
-        msg = json['result'][-1]['message']['text']
-        if (msg == "/mute"):
-            return False
-        elif (msg == "/unmute"):
-            return True
-        else: return True
-    else: return True
+    if (offset != ''):  offset += 1
+    end = time.time()
+    print(end-start)
+    return {
+            "/mute" : False
+    }.get(json['result'][-1]['message'].get('text'), True)
 
 def send_photo():
     bot.send_photo(chat_id=chat_id, photo=open('photo/screenshot.jpg', 'rb'))
+
+def get_offset():
+    # Use telegram api
+    url_req = "https://api.telegram.org/bot" + token +"/getUpdates" + "?timeout=1" 
+    results = requests.get(url_req)
+    json = results.json()
+    if(json['result'][-1] == []):
+        print('No record from telegram API')
+        return True
+    else: 
+        offset = json['result'][-1]['update_id']
+        print('offset is:'+ str(offset))
+    
 
 
 if __name__ == '__main__':
@@ -123,6 +138,9 @@ if __name__ == '__main__':
 
     # Load weights using OpenCV
     net = cv2.dnn.readNetFromDarknet(args.config, args.weights)
+
+    # Get TG API offset
+    get_offset()
 
     if args.use_gpu:
         print('Using GPU')
@@ -179,7 +197,7 @@ if __name__ == '__main__':
             image = draw_bounding_boxes(image, boxes, confidences, classIDs, idxs, colors)
 
             # print(classIDs)
-            if (len(classIDs) > 0 and (time.time() - startTime > 10) and get_updates()):
+            if (len(classIDs) > 0 and (time.time() - startTime > muteTime) and get_updates(offset)):
                 send_msg('Detected stuff that may harm the baby. Please remove it as soon as possible.')
                 startTime = time.time()
 
