@@ -86,7 +86,7 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--labels', type=str, default='model/coco.names', help='Path to label file')
     parser.add_argument('-c', '--confidence', type=float, default=0.5, help='Minimum confidence for a box to be detected.')
     parser.add_argument('-t', '--threshold', type=float, default=0.3, help='Threshold for Non-Max Suppression')
-    # parser.add_argument('-u', '--use_gpu', default=False, action='store_true', help='Use GPU (OpenCV must be compiled for GPU). For more info checkout: https://www.pyimagesearch.com/2020/02/03/how-to-use-opencvs-dnn-module-with-nvidia-gpus-cuda-and-cudnn/')
+    parser.add_argument('-u', '--use_gpu', default=False, action='store_true', help='Use GPU (OpenCV must be compiled for GPU). For more info checkout: https://www.pyimagesearch.com/2020/02/03/how-to-use-opencvs-dnn-module-with-nvidia-gpus-cuda-and-cudnn/')
     parser.add_argument('-s', '--save', default=False, action='store_true', help='Whether or not the output should be saved')
     parser.add_argument('-sh', '--show', default=True, action="store_false", help='Show output')
 
@@ -105,10 +105,10 @@ if __name__ == '__main__':
     # Load weights using OpenCV
     net = cv2.dnn.readNetFromDarknet(args.config, args.weights)
 
-    # if args.use_gpu:
-    #     print('Using GPU')
-    #     net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
-    #     net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
+    if args.use_gpu:
+        print('Using GPU')
+        net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+        net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
 
     if args.save:
         print('Creating output directory if it doesn\'t already exist')
