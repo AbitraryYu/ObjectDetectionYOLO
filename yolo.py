@@ -5,8 +5,9 @@ import os
 import time
 import requests
 import telegram
+import multiprocessing as mp
 
-startTime = 0
+# startTime = 0
 # Create telegram Bot
 bot = telegram.Bot(token='1408532525:AAEpFAGIzqcUUC3S3khTCWHyWUYm196I8WU')
 # Send messages to the telegram bot EIE4430
@@ -85,17 +86,63 @@ def get_updates():
     url_req = "https://api.telegram.org/bot" + token +"/getUpdates" + "?timeout=10"
     results = requests.get(url_req)
     json = results.json()
+    if(json['result'] == []): return True
     if(json['result'][-1]['message'].get('text')):
         msg = json['result'][-1]['message']['text']
         if (msg == "/mute"):
             return False
         elif (msg == "/unmute"):
             return True
+        elif (msg == "/capture"):
+            send_photo()
+            return True
         else: return True
     else: return True
 
 def send_photo():
-    bot.send_photo(chat_id=chat_id, photo=open('photo/screenshot.jpg', 'rb'))
+    bot.send_photo(chat_id=chat_id, photo=open('photo/screenshot.jpeg', 'rb'))
+
+def yolo_vid(args):
+    startTime = 0
+    cap = cv2.VideoCapture('http://192.168.2.7:8080/video')
+    while cap.isOpened():
+        ret, image = cap.read()
+
+        if not ret:
+            print('Video file finished.')
+            break
+
+        boxes, confidences, classIDs, idxs = make_prediction(net, layer_names, labels, image, args.confidence, args.threshold)
+
+        image = draw_bounding_boxes(image, boxes, confidences, classIDs, idxs, colors)
+
+        # print(classIDs)
+        # print(IsUpdate)
+        if (len(classIDs) > 0 and (time.time() - startTime > 10) and get_updates()):
+            send_msg('Detected stuff that may harm the baby. Please remove it as soon as possible.')
+            startTime = time.time()
+
+
+        if args.show:
+            cv2.imshow('YOLO Object Detection', image)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+        
+        if args.save:
+            out.write(image)
+
+    cap.release()
+    if args.save:
+        out.release()
+    cv2.destroyAllWindows()
+
+def multi_process(args):
+    num_processes = mp.cpu_count()
+    print(num_processes)
+    # Parallel process creation
+    p = mp.Pool(num_processes)
+    print('ok')
+    p.map(yolo_vid(args), range(num_processes))
 
 
 if __name__ == '__main__':
@@ -137,7 +184,6 @@ if __name__ == '__main__':
     layer_names = net.getLayerNames()
     layer_names = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 
-
     if args.image_path != '':
         image = cv2.imread(args.image_path)
 
@@ -167,32 +213,35 @@ if __name__ == '__main__':
             name = args.video_path.split("/")[-1] if args.video_path else 'camera.avi'
             out = cv2.VideoWriter(f'output/{name}', cv2.VideoWriter_fourcc('M','J','P','G'), fps, (width, height))
 
-        while cap.isOpened():
-            ret, image = cap.read()
+        # yolo_vid(args)
+        multi_process(args)
+    #     while cap.isOpened():
+    #         ret, image = cap.read()
 
-            if not ret:
-                print('Video file finished.')
-                break
+    #         if not ret:
+    #             print('Video file finished.')
+    #             break
 
-            boxes, confidences, classIDs, idxs = make_prediction(net, layer_names, labels, image, args.confidence, args.threshold)
+    #         boxes, confidences, classIDs, idxs = make_prediction(net, layer_names, labels, image, args.confidence, args.threshold)
 
-            image = draw_bounding_boxes(image, boxes, confidences, classIDs, idxs, colors)
+    #         image = draw_bounding_boxes(image, boxes, confidences, classIDs, idxs, colors)
 
-            # print(classIDs)
-            if (len(classIDs) > 0 and (time.time() - startTime > 10) and get_updates()):
-                send_msg('Detected stuff that may harm the baby. Please remove it as soon as possible.')
-                startTime = time.time()
+    #         # print(classIDs)
+    #         # print(IsUpdate)
+    #         if (len(classIDs) > 0 and (time.time() - startTime > 10) and get_updates()):
+    #             send_msg('Detected stuff that may harm the baby. Please remove it as soon as possible.')
+    #             startTime = time.time()
 
 
-            if args.show:
-                cv2.imshow('YOLO Object Detection', image)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
+    #         if args.show:
+    #             cv2.imshow('YOLO Object Detection', image)
+    #             if cv2.waitKey(1) & 0xFF == ord('q'):
+    #                 break
             
-            if args.save:
-                out.write(image)
+    #         if args.save:
+    #             out.write(image)
     
-        cap.release()
-        if args.save:
-            out.release()
-    cv2.destroyAllWindows()
+    #     cap.release()
+    #     if args.save:
+    #         out.release()
+    # cv2.destroyAllWindows()
