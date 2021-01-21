@@ -4,8 +4,15 @@ import cv2
 import os
 import time
 import requests
+import telegram
 
 startTime = 0
+# Create telegram Bot
+bot = telegram.Bot(token='1408532525:AAEpFAGIzqcUUC3S3khTCWHyWUYm196I8WU')
+# Send messages to the telegram bot EIE4430
+token = "1408532525:AAEpFAGIzqcUUC3S3khTCWHyWUYm196I8WU"
+# Your chat_id
+chat_id = "380473789"
 
 def extract_boxes_confidences_classids(outputs, confidence, width, height):
     boxes = []
@@ -69,14 +76,26 @@ def make_prediction(net, layer_names, labels, image, confidence, threshold):
     return boxes, confidences, classIDs, idxs
 
 def send_msg(text):
-    # Send messages to the telegram bot EIE4430
-    token = "1408532525:AAEpFAGIzqcUUC3S3khTCWHyWUYm196I8WU"
-    # Receive messages from your phone
-    chat_id = "380473789"
-
     # Use telegram api
     url_req = "https://api.telegram.org/bot" + token +"/sendMessage" + "?chat_id=" + chat_id + "&text=" + text
     requests.get(url_req)
+
+def get_updates():
+    # Use telegram api
+    url_req = "https://api.telegram.org/bot" + token +"/getUpdates" + "?timeout=10"
+    results = requests.get(url_req)
+    json = results.json()
+    if(json['result'][-1]['message'].get('text')):
+        msg = json['result'][-1]['message']['text']
+        if (msg == "/mute"):
+            return False
+        elif (msg == "/unmute"):
+            return True
+        else: return True
+    else: return True
+
+def send_photo():
+    bot.send_photo(chat_id=chat_id, photo=open('photo/screenshot.jpg', 'rb'))
 
 
 if __name__ == '__main__':
@@ -160,7 +179,7 @@ if __name__ == '__main__':
             image = draw_bounding_boxes(image, boxes, confidences, classIDs, idxs, colors)
 
             # print(classIDs)
-            if (len(classIDs) > 0 and (time.time() - startTime > 10)):
+            if (len(classIDs) > 0 and (time.time() - startTime > 10) and get_updates()):
                 send_msg('Detected stuff that may harm the baby. Please remove it as soon as possible.')
                 startTime = time.time()
 
