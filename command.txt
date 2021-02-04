@@ -1,0 +1,1 @@
+python yolo.py -w yolov4-tiny-obj_best.weights -cfg yolov4-tiny-obj.cfg -l obj.names -u

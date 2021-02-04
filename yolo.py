@@ -13,6 +13,8 @@ bot = telegram.Bot(token='1408532525:AAEpFAGIzqcUUC3S3khTCWHyWUYm196I8WU')
 token = "1408532525:AAEpFAGIzqcUUC3S3khTCWHyWUYm196I8WU"
 # Your chat_id
 chat_id = "380473789"
+# Should I call telegram?
+prompt = True
 
 def extract_boxes_confidences_classids(outputs, confidence, width, height):
     boxes = []
@@ -80,23 +82,49 @@ def send_msg(text):
     url_req = "https://api.telegram.org/bot" + token +"/sendMessage" + "?chat_id=" + chat_id + "&text=" + text
     requests.get(url_req)
 
-def get_updates():
-    # Use telegram api
-    url_req = "https://api.telegram.org/bot" + token +"/getUpdates" + "?timeout=10"
-    results = requests.get(url_req)
-    json = results.json()
-    if(json['result'][-1]['message'].get('text')):
-        msg = json['result'][-1]['message']['text']
-        if (msg == "/mute"):
-            return False
-        elif (msg == "/unmute"):
-            return True
-        else: return True
-    else: return True
+#def get_updates():
+#    # Use telegram api
+#    url_req = "https://api.telegram.org/bot" + token +"/getUpdates" + "?timeout=10"
+#    results = requests.get(url_req)
+#    json = results.json()
+#    if(json['result'][-1]['message'].get('text')):
+#        msg = json['result'][-1]['message']['text']
+#        if (msg == "/mute"):
+#            return False
+#        elif (msg == "/unmute"):
+#            return True
+#        else: return True
+#    else: return True
 
 def send_photo():
     bot.send_photo(chat_id=chat_id, photo=open('photo/screenshot.jpg', 'rb'))
 
+class Listen(object):
+    def __init__(self):
+        self._cached_stamp = 0
+        self.filename = 'state.txt'
+        if not os.path.exists('state.txt'):
+            Path('state.txt').touch()
+
+    def ook(self):
+        global prompt
+        stamp = os.stat(self.filename).st_mtime
+        if stamp != self._cached_stamp:
+            self._cached_stamp = stamp
+            # File has changed, so do something...
+            file = open(self.filename, "r")
+            f = file.read()
+            if f == 'u':
+                print('blahblahblah')
+                prompt = True
+            elif f == 'm':
+                print('shutting up')
+                prompt = False
+            else:
+                print('m8, sth wrong')
+            file.close()
+
+m1 = Listen()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -133,7 +161,7 @@ if __name__ == '__main__':
         print('Creating output directory if it doesn\'t already exist')
         os.makedirs('output', exist_ok=True)
 
-    # Get the ouput layer names
+    # Get the output layer names
     layer_names = net.getLayerNames()
     layer_names = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 
@@ -179,7 +207,10 @@ if __name__ == '__main__':
             image = draw_bounding_boxes(image, boxes, confidences, classIDs, idxs, colors)
 
             # print(classIDs)
-            if (len(classIDs) > 0 and (time.time() - startTime > 10) and get_updates()):
+            # if (len(classIDs) > 0 and (time.time() - startTime > 10) and get_updates()):
+            #if (len(classIDs) > 0 and (time.time() - startTime > 10)):
+            m1.ook()
+            if (len(classIDs) > 0 and (time.time() - startTime > 10) and prompt):
                 send_msg('Detected stuff that may harm the baby. Please remove it as soon as possible.')
                 startTime = time.time()
 
