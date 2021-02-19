@@ -106,7 +106,7 @@ class Listen(object):
         if not os.path.exists('state.txt'):
             Path('state.txt').touch()
 
-    def ook(self):
+    def checkfile(self):
         global prompt
         stamp = os.stat(self.filename).st_mtime
         if stamp != self._cached_stamp:
@@ -124,7 +124,7 @@ class Listen(object):
                 print('m8, sth wrong')
             file.close()
 
-m1 = Listen()
+listener = Listen()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -185,8 +185,8 @@ if __name__ == '__main__':
             cap = cv2.VideoCapture(args.video_path)
         else:
             # cap = cv2.VideoCapture(0)
-            # cap = cv2.VideoCapture('http://192.168.2.33:8080/video')
-            cap = cv2.VideoCapture('http://192.168.2.7:8080/video')
+            cap = cv2.VideoCapture('http://192.168.2.33:8080/video')
+            # cap = cv2.VideoCapture('http://192.168.2.7:8080/video')
 
         if args.save:
             width = int(cap.get(3))
@@ -209,11 +209,14 @@ if __name__ == '__main__':
             # print(classIDs)
             # if (len(classIDs) > 0 and (time.time() - startTime > 10) and get_updates()):
             #if (len(classIDs) > 0 and (time.time() - startTime > 10)):
-            m1.ook()
+            listener.checkfile()
             if (len(classIDs) > 0 and (time.time() - startTime > 10) and prompt):
                 send_msg('Detected stuff that may harm the baby. Please remove it as soon as possible.')
                 startTime = time.time()
 
+            text = open('state.txt', 'r').read()
+            if text == 'i':
+                cv2.imwrite("current.jpeg", image)
 
             if args.show:
                 cv2.imshow('YOLO Object Detection', image)
