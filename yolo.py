@@ -5,6 +5,7 @@ import os
 import time
 import requests
 import telegram
+import editfile
 
 startTime = 0
 # Create telegram Bot
@@ -287,9 +288,10 @@ if __name__ == "__main__":
             # if (len(classIDs) > 0 and (time.time() - startTime > 10)):
             listener.checkfile()
             if len(classIDs) > 0 and (time.time() - startTime > 10) and prompt:
-                send_msg(
-                    "Detected stuff that may harm the baby. Please remove it as soon as possible."
-                )
+                editfile.write("g")
+                # send_msg(
+                #    "Detected stuff that may harm the baby. Please remove it as soon as possible."
+                # )
                 startTime = time.time()
 
             text = open("state.txt", "r").read()
